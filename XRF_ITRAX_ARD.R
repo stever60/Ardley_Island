@@ -1,10 +1,8 @@
+# TO DO :-  
 
-# STILL TO DO :-  
-
-# 1 - add PCA code to ARD and YAN from Lago Pato analysis 
+# 1 - add PCA code to ARD and YAN data
 # 2 - write code to add age-depth model columns from BACON output
 # 3 - recreate imported csv structure for matching ITRAX & XRF datasets done in excel into R / Tidyverse
-# 4 - reproduce Figure 3 plots from original dataset
 
 # Set up & clear ------------------------------------------------------------------
 
@@ -85,9 +83,7 @@ setwd("/Users/Steve/Dropbox/BAS/Data/R/Papers/Bertrand_2022")
 #check working directory
 getwd() 
 
-# -------------------------------------------------------------------------
-
-#  PART 0: Convert subsample XRF mass oxide to elemental data  STILL TO FINISH -------------------------------------------------------
+#  PART 0: Convert subsample XRF mass oxide to elemental data  -------------------------------------------------------
 
 # Location of ARD, Yan and SSI subsample XRF data in Dropbox - add figure doi when done 
 # https://github.com/stever60/Bertrand_2022/tree/main/Data
@@ -95,12 +91,33 @@ getwd()
 # Import subsample XRF data as oxide mass% and convert to elemental molecular weight
 # for use later on in correlations etc.
 
-
-
 # Oxide to elemental conversion factors
 # Datafile: https://github.com/stever60/Bertrand_2022/tree/main/Data
 ecf <- read_csv("Data/Oxide_elemental_conv_factors.csv")
 ecf
+
+
+# Fildes and Ardley reference data - mass oxide to elemental conversion
+SSI_ref_mass <- read_csv("Data/SSI_ref.csv")
+
+SSI_ref_elemental <- SSI_ref_mass %>% 
+  rename(FeO = FeOT) %>% 
+  mutate(across(c("SiO2"), .fns = ~.*ecf$Si)) %>% rename(Si = SiO2) %>% 
+  mutate(across(c("Al2O3"), .fns = ~.*ecf$Al)) %>% rename(Al = Al2O3) %>%
+  mutate(across(c("K2O"), .fns = ~.*ecf$K)) %>% rename(K = K2O) %>%
+  mutate(across(c("CaO"), .fns = ~.*ecf$Ca)) %>% rename(Ca = CaO) %>%
+  mutate(across(c("TiO2"), .fns = ~.*ecf$Ti)) %>% rename(Ti = TiO2) %>%
+  mutate(across(c("MnO"), .fns = ~.*ecf$Mn)) %>% rename(Mn = MnO) %>%
+  mutate(across(c("FeO"), .fns = ~.*ecf$Fe)) %>% rename(Fe = FeO) %>%
+  mutate(across(c("Na2O"), .fns = ~.*ecf$Na)) %>% rename(Na = Na2O) %>%
+  mutate(across(c("MgO"), .fns = ~.*ecf$Mg)) %>% rename(Mg = MgO) %>% 
+  mutate(across(c("P2O5"), .fns = ~.*ecf$P)) %>% rename(P = P2O5) 
+#mutate(across(c("Cr2O3"), .fns = ~.*ecf$Cr)) %>% rename(Cr = Cr2O3) %>%
+#mutate(across(c("NiO"), .fns = ~.*ecf$Ni)) %>% rename(Ni = NiO) %>%
+#mutate(across(c("SO2"), .fns = ~.*ecf$S)) %>% rename(S = SO2)
+SSI_ref_elemental
+tail(SSI_ref_elemental)
+write.csv(SSI_ref_elemental,"Output/SSI_ref_elemental.csv", row.names = FALSE)
 
 # Ardley Lake - mass oxide to elemental conversion
 # Datafile: https://github.com/stever60/Bertrand_2022/tree/main/Data
@@ -146,34 +163,12 @@ YAN_elemental <- YAN_mass %>%
 YAN_elemental 
 write.csv(YAN_elemental,"Output/YAN_elemental.csv", row.names = FALSE)
 
-# Fildes and Ardley reference data - mass oxide to elemental conversion
-SSI_ref_mass <- read_csv("Data/SSI_ref.csv")
-
-SSI_ref_elemental <- SSI_ref_mass %>% 
-  rename(FeO = FeOT) %>% 
-  mutate(across(c("SiO2"), .fns = ~.*ecf$Si)) %>% rename(Si = SiO2) %>% 
-  mutate(across(c("Al2O3"), .fns = ~.*ecf$Al)) %>% rename(Al = Al2O3) %>%
-  mutate(across(c("K2O"), .fns = ~.*ecf$K)) %>% rename(K = K2O) %>%
-  mutate(across(c("CaO"), .fns = ~.*ecf$Ca)) %>% rename(Ca = CaO) %>%
-  mutate(across(c("TiO2"), .fns = ~.*ecf$Ti)) %>% rename(Ti = TiO2) %>%
-  mutate(across(c("MnO"), .fns = ~.*ecf$Mn)) %>% rename(Mn = MnO) %>%
-  mutate(across(c("FeO"), .fns = ~.*ecf$Fe)) %>% rename(Fe = FeO) %>%
-  mutate(across(c("Na2O"), .fns = ~.*ecf$Na)) %>% rename(Na = Na2O) %>%
-  mutate(across(c("MgO"), .fns = ~.*ecf$Mg)) %>% rename(Mg = MgO) %>% 
-  mutate(across(c("P2O5"), .fns = ~.*ecf$P)) %>% rename(P = P2O5) 
-  #mutate(across(c("Cr2O3"), .fns = ~.*ecf$Cr)) %>% rename(Cr = Cr2O3) %>%
-  #mutate(across(c("NiO"), .fns = ~.*ecf$Ni)) %>% rename(Ni = NiO) %>%
-  #mutate(across(c("SO2"), .fns = ~.*ecf$S)) %>% rename(S = SO2)
-SSI_ref_elemental
-tail(SSI_ref_elemental)
-write.csv(SSI_ref_elemental,"Output/SSI_ref_elemental.csv", row.names = FALSE)
-
 # Centered log ratio (clr) conversion for all three datasets --------------------------------------------
 library(compositions)
 
 # SSI ref elemental data ------------------------------------------
 
-# remove columns with any NAs - will remove Si, Ti, LOI, TC, TN
+# remove columns with NAs in them - here, will remove Si, Ti
 SSI_ref_clr <- SSI_ref_elemental %>% 
   select_if(~!any(is.na(.))) %>% 
   select(Al:P) %>% 
@@ -181,20 +176,6 @@ SSI_ref_clr <- SSI_ref_elemental %>%
 SSI_ref_clr <- as_tibble(SSI_ref_clr)
 SSI_ref_clr
 write.csv(SSI_ref_clr,"Output/SSI_ref_clr.csv", row.names = FALSE)
-
-# How to remove columns with only NAs - will remove TC and TN 
-#SSI_ref_elemental1 <- SSI_ref_elemental[, colSums(is.na(SSI_ref_elemental)) != nrow(SSI_ref_elemental)]
-#tail(SSI_ref_elemental1)
-
-# How to set threshold for removing columns with NAs in them based on number or percentage of columns containing NA columns
-# e.g., remove whole columns where eg >50% or 10% of data in columns are NA – 0.1 will remove all NA columns 
-#SSI_ref_elemental1 <- SSI_ref_elemental[, colSums(is.na(SSI_ref_elemental)) < nrow(SSI_ref_elemental) * 0.1]
-#tail(SSI_ref_elemental1)
-
-# How to remove all rows with NAs -  this leaves nothing as all rows have NAs in them
-#SSI_ref_elemental1 <- SSI_ref_elemental %>% 
-#  filter(!if_any(everything(), is.na))
-#SSI_ref_elemental1
 
 # Merge clr dataframe with Sample_code and location dataframe columns
 SSI_ref_elemental1 <- SSI_ref_elemental %>% 
